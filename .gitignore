@@ -1,0 +1,28 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+venv/
+.env/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python backups
+*.bak
+*.swp
+
+# Database and logs
+*.db
+*.log
+
+# PDFs and OCR outputs
+*.pdf
+*.docx
+*.txt
+
+# Model files
+*.pkl
