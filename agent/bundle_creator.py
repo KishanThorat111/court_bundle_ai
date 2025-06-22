@@ -5,63 +5,90 @@ import csv
 import os
 
 MATCHED_CSV = "data/processed/matched_files.csv"
-INDEX_PDF   = "data/processed/Index.pdf"
-OUTPUT_PDF  = "data/processed/Final_Bundle.pdf"
-UPLOAD_DIR  = "data/uploads"
+INDEX_PDF = "data/processed/Index.pdf"
+OUTPUT_PDF = "data/processed/Final_Bundle.pdf"
+UPLOAD_DIR = "data/uploads"
 
-# Step 1: Load matched files (excluding index)
+A4 = fitz.paper_size("a4")
+
+# Step 1: Load matched files
 files = []
 with open(MATCHED_CSV, encoding="utf-8") as f:
     reader = csv.DictReader(f)
     for row in reader:
         order = int(row["order"])
+        title = row["gold_title"].replace("’", "'").replace("–", "-").replace("#", "").strip().title()
         if order == 1:
-            continue  # skip index
-        files.append((order, row["matched_filename"], row["gold_title"].title()))
+            index_entry = (order, row["matched_filename"], title)
+        else:
+            files.append((order, row["matched_filename"], title))
 
-# Step 2: Start new bundle and insert the index
+# Step 2: Start bundle and insert Index.pdf exactly as-is
 bundle = fitz.open()
 index_doc = fitz.open(INDEX_PDF)
-bundle.insert_pdf(index_doc)
-page_counter = index_doc.page_count
+bundle.insert_pdf(index_doc)  # NO SCALING OR RENDERING — keeps format untouched
 
-# Step 3: Insert documents and collect bookmarks & page references
+# Init TOC and map
 toc = [[1, "INDEX", 1]]
-index_map = []  # title → real start page
+index_map = [("Index", 1)]
 
-for order, filename, title in files:
-    doc_path = os.path.join(UPLOAD_DIR, filename)
-    if not os.path.exists(doc_path):
-        print(f"[!] File missing: {filename}")
+# Step 3: Insert other documents with A4 scaling
+for order, filename, title in sorted(files):
+    path = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(path):
+        print(f"[!] Missing: {filename}")
         continue
-    doc = fitz.open(doc_path)
-    toc.append([1, title, page_counter + 1])
-    index_map.append((title, page_counter + 1))
-    bundle.insert_pdf(doc)
-    page_counter += doc.page_count
+
+    src_doc = fitz.open(path)
+    real_start_page = bundle.page_count + 1
+
+    for page in src_doc:
+        new_doc = fitz.open()
+        new_page = new_doc.new_page(width=A4[0], height=A4[1])
+
+        src_rect = page.rect
+        scale = min(A4[0] / src_rect.width, A4[1] / src_rect.height)
+
+        new_width = src_rect.width * scale
+        new_height = src_rect.height * scale
+        dx = (A4[0] - new_width) / 2
+        dy = (A4[1] - new_height) / 2
+        target_rect = fitz.Rect(dx, dy, dx + new_width, dy + new_height)
+
+        new_page.show_pdf_page(target_rect, src_doc, page.number)
+        bundle.insert_pdf(new_doc)
+
+    toc.append([1, title, real_start_page])
+    index_map.append((title, real_start_page))
 
 # Step 4: Add bookmarks
 bundle.set_toc(toc)
 
-# Step 5: Update index page with real page numbers
-index_page = bundle[0]
-page_text = index_page.get_text("blocks")
-lines = [block[4] for block in sorted(page_text, key=lambda b: -b[1])]  # top-down
+# Step 5: Insert centered page numbers in footer
+# for i in range(bundle.page_count):
+#     page = bundle[i]
+#     number = str(i + 1)
+#     text_width = fitz.get_text_length(number, fontsize=9)
+#     x = (A4[0] - text_width) / 2
+#     y = A4[1] - 15
+#     page.insert_text((x, y), number, fontsize=9, color=(0, 0, 0))
 
-# Replace placeholders by drawing real page numbers
-for title, page_num in index_map:
-    for i, line in enumerate(lines):
-        if title.upper() in line.upper():
-            y = sorted(page_text, key=lambda b: -b[1])[i][1]
-            index_page.insert_text(
-                (450, y),
-                str(page_num),
-                fontsize=10,
-                fontname="helv",
-                fill=(0, 0, 0)
-            )
-            break
+# Step 5: Insert bottom-right page numbers (remove old if any)
+for i in range(bundle.page_count):
+    page = bundle[i]
+    number = str(i + 1)
+
+    # Erase corner region (top-right and bottom-right area)
+    page.draw_rect(fitz.Rect(A4[0] - 80, 0, A4[0], 50), color=(1, 1, 1), fill=(1, 1, 1))        # top-right
+    page.draw_rect(fitz.Rect(A4[0] - 80, A4[1] - 40, A4[0], A4[1]), color=(1, 1, 1), fill=(1, 1, 1))  # bottom-right
+
+    # Insert new number at bottom-right corner
+    text_width = fitz.get_text_length(number, fontsize=9)
+    x = A4[0] - text_width - 30  # 30pt from right
+    y = A4[1] - 20               # 20pt from bottom
+    page.insert_text((x, y), number, fontsize=9, color=(0, 0, 0))
+
 
 # Step 6: Save final bundle
 bundle.save(OUTPUT_PDF)
-print(f"[✓] Final court bundle created → {OUTPUT_PDF}")
+print(f"[✓] Final bundle created → {OUTPUT_PDF} (Index untouched, all pages numbered/bookmarked)")
