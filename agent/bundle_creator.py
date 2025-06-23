@@ -26,7 +26,7 @@ with open(MATCHED_CSV, encoding="utf-8") as f:
 # Step 2: Start bundle and insert Index.pdf exactly as-is
 bundle = fitz.open()
 index_doc = fitz.open(INDEX_PDF)
-bundle.insert_pdf(index_doc)  # NO SCALING OR RENDERING — keeps format untouched
+bundle.insert_pdf(index_doc)  # Keep original layout
 
 # Init TOC and map
 toc = [[1, "INDEX", 1]]
@@ -64,15 +64,6 @@ for order, filename, title in sorted(files):
 # Step 4: Add bookmarks
 bundle.set_toc(toc)
 
-# Step 5: Insert centered page numbers in footer
-# for i in range(bundle.page_count):
-#     page = bundle[i]
-#     number = str(i + 1)
-#     text_width = fitz.get_text_length(number, fontsize=9)
-#     x = (A4[0] - text_width) / 2
-#     y = A4[1] - 15
-#     page.insert_text((x, y), number, fontsize=9, color=(0, 0, 0))
-
 # Step 5: Insert bottom-right page numbers (remove old if any)
 for i in range(bundle.page_count):
     page = bundle[i]
@@ -88,7 +79,24 @@ for i in range(bundle.page_count):
     y = A4[1] - 20               # 20pt from bottom
     page.insert_text((x, y), number, fontsize=9, color=(0, 0, 0))
 
+# Step 6: Add hyperlinks to index entries (clickable)
+index_page = bundle[0]
+for title, page_num in index_map:
+    if page_num == 1:
+        continue  # Don't link to index itself
 
-# Step 6: Save final bundle
+    for block in index_page.get_text("blocks"):
+        block_text = block[4].replace("’", "'").replace("–", "-").replace("#", "").strip().lower()
+        if title.lower() in block_text:
+            x0, y0, x1, y1 = block[:4]
+            index_page.insert_link({
+                "kind": fitz.LINK_GOTO,
+                "page": page_num - 1,  # 0-based index
+                "from": fitz.Rect(x0, y0, x1, y1),
+                "zoom": 0
+            })
+            break
+
+# Step 7: Save final bundle
 bundle.save(OUTPUT_PDF)
-print(f"[✓] Final bundle created → {OUTPUT_PDF} (Index untouched, all pages numbered/bookmarked)")
+print(f"[✓] Final bundle created → {OUTPUT_PDF} (hyperlinked index, bookmarks, A4 scaled)")
