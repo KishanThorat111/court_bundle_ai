@@ -66,4 +66,4 @@ with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as f:
     writer.writeheader()
     writer.writerows(entries)
 
-print(f"[✓] Extracted {len(entries)} index items → {OUTPUT_CSV}")
+print(f"[OK] Extracted {len(entries)} index items -> {OUTPUT_CSV}")

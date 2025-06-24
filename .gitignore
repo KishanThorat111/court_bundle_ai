@@ -23,6 +23,8 @@ Thumbs.db
 *.pdf
 *.docx
 *.txt
+*.json
+*.csv
 
 # Model files
 *.pkl

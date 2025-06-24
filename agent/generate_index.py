@@ -249,7 +249,7 @@ elements.append(table)
 
 # Build PDF
 doc.build(elements)
-print(f"[✓] Professionally styled index generated → {OUTPUT_PDF}")
+print(f"[OK] Professionally styled index generated -> {OUTPUT_PDF}")
 
 
 

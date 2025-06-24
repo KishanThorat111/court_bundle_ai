@@ -228,7 +228,7 @@ for i in range(index_start_page - 1, index_start_page - 1 + index_page_count):
 
 # Step 7: Save bundle
 bundle.save(OUTPUT_PDF)
-print(f"[✓] Final bundle created → {OUTPUT_PDF} (pages recalculated and index updated)")
+print(f"[OK] Final bundle created -> {OUTPUT_PDF} (pages recalculated and index updated)")
 
 
 # import csv

@@ -61,4 +61,4 @@ metadata["DEFENDANTS"] = defendant_lines
 with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
     json.dump(metadata, f, indent=2)
 
-print(f"[✓] Clean metadata extracted → {OUTPUT_JSON}")
+print(f"[OK] Clean metadata extracted -> {OUTPUT_JSON}")

@@ -117,6 +117,7 @@ with open(OUT_CSV, "w", newline="", encoding="utf-8") as out:
         writer.writerow([order, original_title, best, f"{best_score:.2f}"])
         if best_score < 0.6:
             # --- CHANGE 6: Use the original_title in the warning for clarity ---
-            print(f"[!] LOW CONFIDENCE: {order} '{original_title}' → '{best}' ({best_score:.2f})")
+            print(f"[!] LOW CONFIDENCE: {order} '{original_title}' -> '{best}' ({best_score:.2f})")
 
-print(f"[✓] Order-based + fuzzy match done → {OUT_CSV}")
+
+print(f"[OK] Order-based + fuzzy match done -> {OUT_CSV}")
