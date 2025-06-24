@@ -22,7 +22,7 @@ Thumbs.db
 # PDFs and OCR outputs
 *.pdf
 *.docx
-*.txt
+# *.txt
 *.json
 *.csv
 
